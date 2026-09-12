@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>B.O.S. V3 - Battle of Sticks</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10131b;color:#f5f7ff;font-family:Arial,Helvetica,sans-serif;display:flex;justify-content:center;min-height:100vh}
+#app{width:min(100%,1100px);padding:14px}
+h1{margin:4px 0;font-size:clamp(28px,6vw,52px);letter-spacing:4px;text-shadow:0 4px 0 #000}
+.sub{color:#aab2c8;margin-bottom:10px}
+.arena{position:relative;overflow:hidden;border:4px solid #272d3c;border-radius:20px;background:linear-gradient(#667b9b 0 55%,#435344 55%);min-height:650px;box-shadow:0 18px 60px #0008}
+.sky{position:absolute;inset:0 0 45%;background:linear-gradient(#79aee9,#d8edff);z-index:0}
+.cloud{position:absolute;background:#fff9;border-radius:100px;width:150px;height:38px;filter:blur(1px)}
+.c1{left:8%;top:11%}.c2{right:8%;top:22%;transform:scale(.7)}
+.platform{position:absolute;border-radius:50%;background:#26352c;height:80px;width:46%;bottom:34%;box-shadow:0 14px 0 #18221d}
+.platform.p1{left:2%;transform:skew(-10deg)}.platform.p2{right:2%;transform:skew(10deg)}
+.fighter{position:absolute;z-index:3;width:150px;height:210px;bottom:35%;transition:.25s}
+.fighter.left{left:12%}.fighter.right{right:12%;transform:scaleX(-1)}
+.body{position:absolute;width:88px;height:115px;left:31px;top:65px;border-radius:35px 35px 25px 25px;background:linear-gradient(135deg,#e9eef8,#9ca8c2);border:5px solid #263044}
+.head{position:absolute;width:100px;height:92px;left:25px;top:5px;border-radius:50%;background:#d9e2f0;border:5px solid #263044}
+.eye{position:absolute;width:18px;height:18px;border-radius:50%;background:#1a2030;top:31px;left:20px;box-shadow:43px 0 #1a2030}
+.arm{position:absolute;width:80px;height:20px;background:#aeb9cc;border:5px solid #263044;border-radius:20px;top:105px;left:-28px;transform:rotate(25deg)}
+.stick{position:absolute;width:88px;height:8px;background:#9b5d2e;border:3px solid #4d2a17;border-radius:8px;top:95px;left:-31px;transform:rotate(-20deg)}
+.nameplate{position:absolute;z-index:5;top:18px;background:#111827dd;border:2px solid #fff4;padding:8px 12px;border-radius:10px;min-width:205px}
+.nameplate.left{left:18px}.nameplate.right{right:18px;text-align:right}
+.hands{display:flex;gap:7px;margin-top:7px}
+.right .hands{justify-content:flex-end}
+.handbox{border:2px solid #56627a;background:#202738;border-radius:9px;padding:5px 9px;min-width:72px;text-align:center}
+.handbox b{font-size:25px;color:#ffd76b}.handbox small{display:block;color:#aab2c8;font-size:10px}
+.handbox.dead{opacity:.35;border-style:dashed}
+.handbox.selected{border-color:#fff06a;box-shadow:0 0 12px #fff06a}
+#log{position:absolute;z-index:6;left:50%;bottom:8px;transform:translateX(-50%);width:min(94%,680px);background:#111827ee;border:3px solid #343d52;border-radius:15px;padding:11px 15px;min-height:62px;text-align:center}
+.controls{margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+button{border:0;border-radius:12px;padding:13px 8px;background:#242b3b;color:#fff;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 4px 0 #111927}
+button:hover{filter:brightness(1.18);transform:translateY(-1px)}
+button:active{transform:translateY(2px);box-shadow:0 2px 0 #111927}
+button:disabled{opacity:.38;cursor:not-allowed;transform:none}
+.panel{margin-top:12px;background:#171c27;border:2px solid #2c3445;border-radius:15px;padding:12px}
+.row{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.badge{padding:6px 9px;background:#242b3b;border-radius:9px;color:#bfc8da;font-size:12px}.cool{color:#ffd76b}
+.targetPanel{display:none;margin-top:10px;background:#171c27;border:2px solid #ffd76b;border-radius:14px;padding:10px}
+.targetPanel.show{display:block}
+.targetTitle{font-weight:800;margin-bottom:6px;color:#ffd76b}
+.targetBtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+@keyframes attack{50%{transform:translateX(80px) scale(1.05)}} 
+@keyframes hit{25%{filter:brightness(2)}50%{transform:translateX(-18px)}} 
+.attacking{animation:attack .38s}.hit{animation:hit .38s}
+.win{position:absolute;z-index:20;inset:0;display:none;place-items:center;background:#05070ccc}.win.show{display:grid}
+.winbox{background:#151b28;border:4px solid #f5d76e;border-radius:20px;padding:30px;text-align:center;width:min(90%,460px);box-shadow:0 20px 70px #000}
+.winbox h2{font-size:42px;margin:0 0 8px}
+@media(max-width:650px){.arena{min-height:580px}.fighter{transform:scale(.75)}.fighter.right{transform:scaleX(-1) scale(.75)}.fighter.left{left:2%}.fighter.right{right:2%}.controls{grid-template-columns:repeat(2,1fr)}.nameplate{min-width:170px;font-size:13px}.handbox{min-width:55px;padding:4px 6px}.handbox b{font-size:20px}}
+</style>
+</head>
+<body>
+<div id="app">
+<h1>B.O.S.</h1><div class="sub">BATTLE OF STICKS • Prototype V3</div>
+<div class="arena" id="arena">
+<div class="sky"></div><div class="cloud c1"></div><div class="cloud c2"></div>
+<div class="platform p1"></div><div class="platform p2"></div>
+
+<div class="nameplate left">
+<b>PLAYER</b>
+<div class="hands">
+ <div id="p0" class="handbox"><b>1</b><small>LEFT</small></div>
+ <div id="p1" class="handbox"><b>1</b><small>RIGHT</small></div>
+</div>
+</div>
+
+<div class="nameplate right">
+<b>CPU</b>
+<div class="hands">
+ <div id="c0" class="handbox"><b>1</b><small>LEFT</small></div>
+ <div id="c1" class="handbox"><b>1</b><small>RIGHT</small></div>
+</div>
+</div>
+
+<div class="fighter left" id="player"><div class="head"><div class="eye"></div></div><div class="body"></div><div class="arm"></div><div class="stick"></div></div>
+<div class="fighter right" id="cpu"><div class="head"><div class="eye"></div></div><div class="body"></div><div class="arm"></div><div class="stick"></div></div>
+<div id="log">Choose your move. Humanity has entrusted you with sticks.</div>
+
+<div class="win" id="win">
+<div class="winbox"><h2 id="winner"></h2><p id="winText"></p><button onclick="resetGame()">REMATCH</button></div>
+</div>
+</div>
+
+<div class="controls">
+<button id="blockBtn" onclick="play('block')">🛡️ BLOCK<br><small>Defend</small></button>
+<button id="shootBtn" onclick="play('shoot')">🔫 SHOOT<br><small>2-turn cooldown</small></button>
+<button id="reflectBtn" onclick="play('reflect')">🔄 REFLECT<br><small>4-turn cooldown</small></button>
+<button id="washBtn" onclick="play('wash')">🧼 WASH<br><small>8-turn cooldown</small></button>
+<button id="mindBtn" onclick="play('mind')">🧠 MIND CONTROL<br><small>65% vs Swap</small></button>
+<button id="swapBtn" onclick="play('swap')">🔀 SWAP<br><small>Redistribute sticks</small></button>
+<button id="lockBtn" onclick="play('lock')">🔒 LOCK<br><small>Restrict attack</small></button>
+<button id="stealBtn" onclick="play('steal')">🥷 STEAL<br><small>Sneaky stick theft</small></button>
+</div>
+
+<div id="targetPanel" class="targetPanel">
+<div class="targetTitle" id="targetTitle">CHOOSE YOUR ATTACKING HAND</div>
+<div class="targetBtns">
+<button id="leftTarget" onclick="chooseTarget(0)">LEFT HAND</button>
+<button id="rightTarget" onclick="chooseTarget(1)">RIGHT HAND</button>
+</div>
+</div>
+
+<div class="panel"><div class="row">
+<span class="badge">Turn <b id="turn">1</b></span>
+<span class="badge">Shoot: <b id="cdShoot">READY</b></span>
+<span class="badge">Reflect: <b id="cdReflect">READY</b></span>
+<span class="badge">Wash: <b id="cdWash">READY</b></span>
+<span class="badge">Block streak: <b id="blockStreak">0</b>/3</span>
+</div></div>
+</div>
+
+<script>
+const state={
+ turn:1,p:[1,1],c:[1,1],over:false,locked:{p:false,c:false},
+ cd:{shoot:0,reflect:0,wash:0},cdCPU:{shoot:0,reflect:0,wash:0},
+ blockStreak:0,cpuBlockStreak:0,movePending:null,selectedHand:null
+};
+const names={block:"Block",shoot:"Shoot",reflect:"Reflect",wash:"Wash",mind:"Mind Control",swap:"Swap",lock:"Lock",steal:"Steal"};
+
+function log(t){document.getElementById("log").textContent=t}
+
+function handValue(arr,i){return arr[i]}
+
+function render(){
+ for(let i=0;i<2;i++){
+   document.querySelector("#p"+i+" b").textContent=state.p[i];
+   document.querySelector("#c"+i+" b").textContent=state.c[i];
+   document.getElementById("p"+i).classList.toggle("dead",state.p[i]===0);
+   document.getElementById("c"+i).classList.toggle("dead",state.c[i]===0);
+   document.getElementById("p"+i).classList.toggle("selected",state.selectedHand===i);
+ }
+ turn.textContent=state.turn;
+ blockStreak.textContent=state.blockStreak;
+ cdShoot.textContent=state.cd.shoot?state.cd.shoot+" turn":"READY";
+ cdReflect.textContent=state.cd.reflect?state.cd.reflect+" turns":"READY";
+ cdWash.textContent=state.cd.wash?state.cd.wash+" turns":"READY";
+ document.getElementById("blockBtn").disabled=state.over||state.blockStreak>=3||state.locked.p;
+ document.getElementById("shootBtn").disabled=state.over||state.cd.shoot>0||state.locked.p;
+ document.getElementById("reflectBtn").disabled=state.over||state.cd.reflect>0||state.locked.p;
+ document.getElementById("washBtn").disabled=state.over||state.cd.wash>0||state.locked.p;
+ document.getElementById("mindBtn").disabled=state.over||state.locked.p;
+ document.getElementById("swapBtn").disabled=state.over||state.locked.p;
+ document.getElementById("lockBtn").disabled=state.over||state.locked.p;
+ document.getElementById("stealBtn").disabled=state.over||state.locked.p;
+}
+
+function attackAnim(){
+ const a=document.getElementById("player"),b=document.getElementById("cpu");
+ a.classList.remove("attacking");b.classList.remove("hit");void a.offsetWidth;
+ a.classList.add("attacking");setTimeout(()=>b.classList.add("hit"),150);
+}
+
+function hitHand(arr,i,damage){
+ if(arr[i]===0)return {old:0,new:0,dead:false};
+ const old=arr[i];
+ const total=old+damage;
+ arr[i]=total%5;
+ return {old,new:arr[i],dead:arr[i]===0};
+}
+
+function bothDead(x){return x[0]===0&&x[1]===0}
+
+function finish(){
+ if(!bothDead(state.p)&&!bothDead(state.c))return false;
+ state.over=true;
+ const win=bothDead(state.c)&&bothDead(state.p)?"DRAW!":bothDead(state.c)?"YOU WIN!":"CPU WINS!";
+ winner.textContent=win;
+ winText.textContent=win==="YOU WIN!"?"Both CPU hands are dead. You conquered the arena.":win==="CPU WINS!"?"Both of your hands are dead.":"Both fighters lost both hands.";
+ document.getElementById("win").classList.add("show");
+ render();return true;
+}
+
+function chooseTarget(i){
+ if(state.over||!state.movePending)return;
+ if(state.p[i]===0)return;
+ state.selectedHand=i;
+ if(state.movePending==="shoot"){
+   executePlayerShoot(i);
+ }else if(state.movePending==="steal"){
+   executePlayerSteal(i);
+ }
+}
+
+function startTargeting(move){
+ state.movePending=move;
+ state.selectedHand=null;
+ targetPanel.classList.add("show");
+ targetTitle.textContent=move==="steal"?"CHOOSE THE HAND TO STEAL FROM":"CHOOSE YOUR ATTACKING HAND";
+ leftTarget.textContent="LEFT HAND";rightTarget.textContent="RIGHT HAND";
+ log(move==="steal"?"Choose one of the CPU's hands to steal from.":"Choose which of your hands will attack.");
+ render();
+}
+
+function executePlayerShoot(attacker){
+ targetPanel.classList.remove("show");
+ const targets=[0,1].filter(i=>state.c[i]>0);
+ if(!targets.length)return;
+ let target=targets.includes(state.selectedHand)?state.selectedHand:targets[0];
+ // After choosing the player's hand, ask which CPU hand.
+ state.movePending="shootTarget";
+ targetPanel.classList.add("show");
+ targetTitle.textContent="CHOOSE CPU HAND TO HIT";
+ leftTarget.textContent="CPU LEFT";rightTarget.textContent="CPU RIGHT";
+ document.getElementById("leftTarget").onclick=()=>finishPlayerShoot(target,0);
+ document.getElementById("rightTarget").onclick=()=>finishPlayerShoot(target,1);
+}
+
+function finishPlayerShoot(attacker,target){
+ targetPanel.classList.remove("show");
+ document.getElementById("leftTarget").onclick=()=>chooseTarget(0);
+ document.getElementById("rightTarget").onclick=()=>chooseTarget(1);
+ const move="shoot";
+ const cpuMove=cpuChoose();
+ attackAnim();
+ setTimeout(()=>resolve(move,cpuMove,attacker,target),180);
+}
+
+function executePlayerSteal(attacker){
+ targetPanel.classList.remove("show");
+ const targets=[0,1].filter(i=>state.c[i]>0);
+ if(!targets.length)return;
+ state.movePending="stealTarget";
+ targetPanel.classList.add("show");
+ targetTitle.textContent="CHOOSE CPU HAND TO STEAL FROM";
+ leftTarget.textContent="CPU LEFT";rightTarget.textContent="CPU RIGHT";
+ document.getElementById("leftTarget").onclick=()=>finishPlayerSteal(attacker,0);
+ document.getElementById("rightTarget").onclick=()=>finishPlayerSteal(attacker,1);
+}
+
+function finishPlayerSteal(attacker,target){
+ targetPanel.classList.remove("show");
+ document.getElementById("leftTarget").onclick=()=>chooseTarget(0);
+ document.getElementById("rightTarget").onclick=()=>chooseTarget(1);
+ const cpuMove=cpuChoose();
+ attackAnim();
+ setTimeout(()=>resolve("steal",cpuMove,attacker,target),180);
+}
+
+function validMove(m){
+ if(state.over)return false;
+ if(state.locked.p){log("LOCKED! Your move is restricted.");return false}
+ if(m==="shoot"&&state.cd.shoot)return false;
+ if(m==="reflect"&&state.cd.reflect)return false;
+ if(m==="wash"&&state.cd.wash)return false;
+ if(m==="block"&&state.blockStreak>=3)return false;
+ return true;
+}
+
+function play(move){
+ if(!validMove(move))return;
+ if(move==="shoot"||move==="steal"){startTargeting(move);return;}
+ const cpuMove=cpuChoose();
+ attackAnim();
+ setTimeout(()=>resolve(move,cpuMove,null,null),180);
+}
+
+function cpuChoose(){
+ let alive=[0,1].filter(i=>state.c[i]>0);
+ let targets=[0,1].filter(i=>state.p[i]>0);
+ const choices=["block","shoot","reflect","wash","mind","swap","lock","steal"];
+ let available=choices.filter(m=>{
+   if(m==="shoot"&&state.cdCPU.shoot)return false;
+   if(m==="reflect"&&state.cdCPU.reflect)return false;
+   if(m==="wash"&&state.cdCPU.wash)return false;
+   if(m==="block"&&state.cpuBlockStreak>=3)return false;
+   return true;
+ });
+ if(!alive.length)return "block";
+ if(state.p.some(v=>v>=4)&&available.includes("shoot"))return "shoot";
+ if(state.c.reduce((a,b)=>a+b,0)>=6&&available.includes("wash"))return "wash";
+ return available[Math.floor(Math.random()*available.length)];
+}
+
+function randomAlive(arr){
+ const a=[0,1].filter(i=>arr[i]>0);
+ return a[Math.floor(Math.random()*a.length)];
+}
+
+function cpuAttackTarget(){
+ const alive=[0,1].filter(i=>state.p[i]>0);
+ // Prefer a hand that can be killed, otherwise the larger hand.
+ return alive.sort((a,b)=>state.p[b]-state.p[a])[0];
+}
+
+function resolve(P,C,pHand,pTarget){
+ let pMsg="",cMsg="";
+ if(P==="block")state.blockStreak++;else state.blockStreak=0;
+ if(C==="block")state.cpuBlockStreak++;else state.cpuBlockStreak=0;
+
+ // Reflect interactions retained from B.O.S. rules.
+ if(C==="reflect"&&["shoot","wash","mind","steal"].includes(P)){
+   pMsg="CPU REFLECTED your "+names[P]+"!";
+   if(P==="shoot") {
+     const a=pHand??randomAlive(state.p),t=pTarget??randomAlive(state.c);
+     const r=hitHand(state.p,a,state.c[t]);
+     pMsg+=" The reflected attack hit your "+(a===0?"LEFT":"RIGHT")+" hand.";
+   } else if(P==="steal"){
+     pMsg+=" Your Steal failed.";
+   }
+ }
+ else if(P==="reflect"&&["shoot","wash","mind","steal"].includes(C)){
+   cMsg="You REFLECTED the CPU's "+names[C]+"!";
+   if(C==="shoot"){
+     const a=randomAlive(state.c),t=cpuAttackTarget();
+     hitHand(state.c,a,state.p[t]);
+     cMsg+=" The reflected attack hit the CPU's "+(a===0?"LEFT":"RIGHT")+" hand.";
+   } else if(C==="steal") cMsg+=" CPU's Steal failed.";
+ }
+ else if(P==="block"&&["shoot","reflect","wash","lock"].includes(C)){
+   pMsg="You BLOCKED "+names[C]+"!";
+ }
+ else if(C==="block"&&["shoot","reflect","wash","lock"].includes(P)){
+   cMsg="CPU BLOCKED your "+names[P]+"!";
+ }
+ else if(P==="mind"){
+   if(C==="swap"){
+     if(Math.random()<.65){
+       const a=randomAlive(state.c),t=cpuAttackTarget();
+       hitHand(state.c,a,state.p[t]);
+       pMsg="MIND CONTROL worked through Swap! CPU hit itself.";
+     }else pMsg="Swap confused your Mind Control. It failed.";
+   }else{
+     const a=randomAlive(state.c),t=cpuAttackTarget();
+     hitHand(state.c,a,state.p[t]);
+     pMsg="MIND CONTROL! The CPU attacked itself.";
+   }
+ }
+ else if(C==="mind"){
+   if(P==="swap"){
+     if(Math.random()<.65){
+       const a=pHand??randomAlive(state.p),t=randomAlive(state.c);
+       hitHand(state.p,a,state.c[t]);
+       cMsg="CPU MIND CONTROL worked through Swap!";
+     }else cMsg="Your Swap confused the CPU's Mind Control.";
+   }else{
+     const a=randomAlive(state.p),t=randomAlive(state.c);
+     hitHand(state.p,a,state.c[t]);
+     cMsg="CPU used MIND CONTROL! Your hand attacked itself.";
+   }
+ }
+ else if(P==="wash"){
+   state.p=[1,1];
+   pMsg="WASH! Your hands reset to 1 | 1.";
+ }
+ else if(C==="wash"){
+   state.c=[1,1];
+   cMsg="CPU WASHED its hands back to 1 | 1.";
+ }
+ else if(P==="swap"){
+   // Keep total. Player chooses a legal redistribution automatically.
+   const total=state.p[0]+state.p[1];
+   const splits=[];
+   for(let a=0;a<=4;a++){let b=total-a;if(b>=0&&b<=4)splits.push([a,b]);}
+   // Prefer a split that keeps both hands alive when possible.
+   const legal=splits.filter(x=>x[0]>0&&x[1]>0);
+   const chosen=legal.length?legal[Math.floor(Math.random()*legal.length)]:splits[0];
+   state.p=[chosen[0],chosen[1]];
+   pMsg=`SWAP! Your ${total} sticks were redistributed to ${chosen[0]} | ${chosen[1]}.`;
+ }
+ else if(C==="swap"){
+   const total=state.c[0]+state.c[1],splits=[];
+   for(let a=0;a<=4;a++){let b=total-a;if(b>=0&&b<=4)splits.push([a,b]);}
+   const legal=splits.filter(x=>x[0]>0&&x[1]>0);
+   const chosen=legal.length?legal[Math.floor(Math.random()*legal.length)]:splits[0];
+   state.c=[chosen[0],chosen[1]];
+   cMsg=`CPU used SWAP: ${chosen[0]} | ${chosen[1]}.`;
+ }
+ else if(P==="steal"){
+   const t=pTarget??randomAlive(state.c);
+   const amount=Math.min(2,state.c[t]);
+   if(amount>0){
+     state.c[t]-=amount;
+     // Add stolen sticks to chosen player hand, wrapping at 5.
+     const a=pHand??randomAlive(state.p);
+     state.p[a]=(state.p[a]+amount)%5;
+     pMsg=`STEAL! You stole ${amount} stick${amount>1?"s":""} from CPU ${t===0?"LEFT":"RIGHT"} hand.`;
+   }
+ }
+ else if(C==="steal"){
+   const t=randomAlive(state.p),a=randomAlive(state.c),amount=Math.min(2,state.p[t]);
+   if(amount>0){
+     state.p[t]-=amount;
+     state.c[a]=(state.c[a]+amount)%5;
+     cMsg=`CPU STEAL! It stole ${amount} stick${amount>1?"s":""} from your ${t===0?"LEFT":"RIGHT"} hand.`;
+   }
+ }
+ else if(P==="lock"){
+   state.locked.c=true;pMsg="LOCK! CPU's next move is restricted.";
+ }
+ else if(C==="lock"){
+   state.locked.p=true;cMsg="CPU used LOCK! Your next move is restricted.";
+ }
+ else if(P==="shoot"){
+   const a=pHand??randomAlive(state.p),t=pTarget??randomAlive(state.c);
+   const r=hitHand(state.c,t,state.p[a]);
+   pMsg=`SHOOT! Your ${a===0?"LEFT":"RIGHT"} hand (${state.p[a]}) hit CPU ${t===0?"LEFT":"RIGHT"}: ${r.old} + ${state.p[a]} → ${r.new}.`;
+   if(r.dead)pMsg+=" CPU hand is DEAD!";
+ }
+ else if(C==="shoot"){
+   const a=randomAlive(state.c),t=cpuAttackTarget();
+   const damage=state.c[a],r=hitHand(state.p,t,damage);
+   cMsg=`CPU SHOOT! Its ${a===0?"LEFT":"RIGHT"} hand (${damage}) hit your ${t===0?"LEFT":"RIGHT"}: ${r.old} + ${damage} → ${r.new}.`;
+   if(r.dead)cMsg+=" Your hand is DEAD!";
+ }
+ if(P==="block"&&!pMsg)pMsg="You raised BLOCK.";
+ if(C==="block"&&!cMsg)cMsg="CPU raised BLOCK.";
+ if(!pMsg)pMsg=`You used ${names[P]}.`;
+ if(!cMsg)cMsg=`CPU used ${names[C]}.`;
+ log(pMsg+"  "+cMsg);
+
+ startCooldown(P,C);
+ state.locked.p=false;state.locked.c=false;
+ if(finish())return;
+ tickCooldowns();
+ state.turn++;
+ state.movePending=null;state.selectedHand=null;
+ render();
+}
+
+function startCooldown(P,C){
+ if(P==="shoot")state.cd.shoot=2;
+ if(P==="reflect")state.cd.reflect=4;
+ if(P==="wash")state.cd.wash=8;
+ if(C==="shoot")state.cdCPU.shoot=2;
+ if(C==="reflect")state.cdCPU.reflect=4;
+ if(C==="wash")state.cdCPU.wash=8;
+}
+
+function tickCooldowns(){
+ for(const k of Object.keys(state.cd))if(state.cd[k]>0)state.cd[k]--;
+ for(const k of Object.keys(state.cdCPU))if(state.cdCPU[k]>0)state.cdCPU[k]--;
+}
+
+function resetGame(){
+ Object.assign(state,{turn:1,p:[1,1],c:[1,1],over:false,locked:{p:false,c:false},cd:{shoot:0,reflect:0,wash:0},cdCPU:{shoot:0,reflect:0,wash:0},blockStreak:0,cpuBlockStreak:0,movePending:null,selectedHand:null});
+ document.getElementById("win").classList.remove("show");
+ targetPanel.classList.remove("show");
+ document.getElementById("leftTarget").onclick=()=>chooseTarget(0);
+ document.getElementById("rightTarget").onclick=()=>chooseTarget(1);
+ log("Choose your move. Humanity has entrusted you with sticks.");
+ render();
+}
+resetGame();
+</script>
+</body>
+</html>
